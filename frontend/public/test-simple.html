@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .problem-card { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
+        .difficulty-Easy { color: green; }
+        .difficulty-Medium { color: orange; }
+        .difficulty-Hard { color: red; }
+    </style>
+</head>
+<body>
+    <h1>CodePlatform - Simple Test</h1>
+    <button onclick="loadProblems()">Load Problems</button>
+    <div id="problemsList">Click the button to load problems...</div>
+
+    <script>
+        async function loadProblems() {
+            const problemsList = document.getElementById('problemsList');
+            problemsList.innerHTML = 'Loading...';
+            
+            try {
+                console.log('Fetching problems from API...');
+                const response = await fetch('http://localhost:8080/api/problems');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const problems = await response.json();
+                console.log('Problems received:', problems);
+                
+                if (problems.length === 0) {
+                    problemsList.innerHTML = '<p>No problems found</p>';
+                    return;
+                }
+                
+                let html = '';
+                problems.forEach(problem => {
+                    html += `
+                        <div class="problem-card">
+                            <h3>${problem.title}</h3>
+                            <p class="difficulty-${problem.difficulty}">Difficulty: ${problem.difficulty}</p>
+                            <p>Time Limit: ${problem.timeLimit}ms | Memory Limit: ${problem.memoryLimit}MB</p>
+                        </div>
+                    `;
+                });
+                
+                problemsList.innerHTML = html;
+                console.log('Problems rendered successfully');
+                
+            } catch (error) {
+                console.error('Error loading problems:', error);
+                problemsList.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Auto-load problems when page loads
+        window.addEventListener('load', loadProblems);
+    </script>
+</body>
+</html>

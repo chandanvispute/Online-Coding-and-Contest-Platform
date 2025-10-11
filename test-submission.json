@@ -1,0 +1,6 @@
+{
+    "problemId": 1,
+    "languageId": 1,
+    "code": "public class Solution { public static void main(String[] args) { System.out.println(\"0 1\"); } }",
+    "userId": 1
+}

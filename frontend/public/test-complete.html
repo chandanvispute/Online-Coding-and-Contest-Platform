@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodePlatform - Complete Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #0d1117; color: #c9d1d9; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #333; border-radius: 8px; }
+        .success { border-color: green; background: rgba(0, 255, 0, 0.1); }
+        .error { border-color: red; background: rgba(255, 0, 0, 0.1); }
+        .info { border-color: #007bff; background: rgba(0, 123, 255, 0.1); }
+        button { padding: 10px 20px; margin: 5px; background: #1f6feb; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #388bfd; }
+        pre { background: #1a1a1a; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 CodePlatform Complete Feature Test</h1>
+    
+    <div class="test-section info">
+        <h2>🔧 System Status</h2>
+        <button onclick="testAllAPIs()">Test All APIs</button>
+        <div id="apiResults"></div>
+    </div>
+    
+    <div class="test-section info">
+        <h2>📋 Available Problems</h2>
+        <button onclick="loadProblems()">Load Problems</button>
+        <div id="problemsResults"></div>
+    </div>
+    
+    <div class="test-section info">
+        <h2>🔍 Problem Detail Test</h2>
+        <button onclick="testProblemDetail(1)">Load Problem #1 Detail</button>
+        <div id="problemDetailResults"></div>
+    </div>
+    
+    <div class="test-section info">
+        <h2>💻 Languages & Boilerplates</h2>
+        <button onclick="testLanguages()">Test Languages</button>
+        <div id="languagesResults"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        
+        async function testAllAPIs() {
+            const resultsDiv = document.getElementById('apiResults');
+            resultsDiv.innerHTML = 'Testing APIs...';
+            
+            const tests = [
+                { name: 'Problems API', url: '/api/problems' },
+                { name: 'Languages API', url: '/api/languages' },
+                { name: 'Problem Detail API', url: '/api/problems/1' }
+            ];
+            
+            let html = '<h3>API Test Results:</h3>';
+            
+            for (const test of tests) {
+                try {
+                    const response = await fetch(API_BASE + test.url);
+                    if (response.ok) {
+                        const data = await response.json();
+                        html += `<div class="success">✅ ${test.name}: Working (${Array.isArray(data) ? data.length + ' items' : 'Object received'})</div>`;
+                    } else {
+                        html += `<div class="error">❌ ${test.name}: HTTP ${response.status}</div>`;
+                    }
+                } catch (error) {
+                    html += `<div class="error">❌ ${test.name}: ${error.message}</div>`;
+                }
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        async function loadProblems() {
+            const resultsDiv = document.getElementById('problemsResults');
+            resultsDiv.innerHTML = 'Loading problems...';
+            
+            try {
+                const response = await fetch(API_BASE + '/api/problems');
+                const problems = await response.json();
+                
+                let html = `<h3>Found ${problems.length} Problems:</h3>`;
+                problems.forEach(problem => {
+                    html += `
+                        <div style="margin: 10px 0; padding: 10px; background: #1a1a1a; border-radius: 5px;">
+                            <strong>${problem.title}</strong> 
+                            <span style="color: ${problem.difficulty === 'Easy' ? 'green' : problem.difficulty === 'Medium' ? 'orange' : 'red'}">
+                                (${problem.difficulty})
+                            </span>
+                            <br>
+                            <small>Time: ${problem.timeLimit}ms | Memory: ${problem.memoryLimit}MB</small>
+                        </div>
+                    `;
+                });
+                
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function testProblemDetail(problemId) {
+            const resultsDiv = document.getElementById('problemDetailResults');
+            resultsDiv.innerHTML = 'Loading problem detail...';
+            
+            try {
+                const response = await fetch(API_BASE + `/api/problems/${problemId}`);
+                const problem = await response.json();
+                
+                let html = `
+                    <h3>Problem: ${problem.title}</h3>
+                    <p><strong>Difficulty:</strong> ${problem.difficulty}</p>
+                    <p><strong>Description:</strong></p>
+                    <div style="background: #1a1a1a; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                        ${problem.description.replace(/\n/g, '<br>')}
+                    </div>
+                    <p><strong>Sample Test Cases:</strong> ${problem.sampleTestCases ? problem.sampleTestCases.length : 0}</p>
+                    <p><strong>Available Boilerplates:</strong> ${problem.boilerplates ? Object.keys(problem.boilerplates).length : 0}</p>
+                `;
+                
+                if (problem.sampleTestCases && problem.sampleTestCases.length > 0) {
+                    html += '<h4>Sample Test Case 1:</h4>';
+                    const testCase = problem.sampleTestCases[0];
+                    html += `
+                        <div style="background: #1a1a1a; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                            <strong>Input:</strong><br>
+                            <pre>${testCase.input}</pre>
+                            <strong>Output:</strong><br>
+                            <pre>${testCase.output}</pre>
+                            ${testCase.explanation ? `<strong>Explanation:</strong><br>${testCase.explanation}` : ''}
+                        </div>
+                    `;
+                }
+                
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function testLanguages() {
+            const resultsDiv = document.getElementById('languagesResults');
+            resultsDiv.innerHTML = 'Loading languages...';
+            
+            try {
+                const response = await fetch(API_BASE + '/api/languages');
+                const languages = await response.json();
+                
+                let html = `<h3>Available Languages (${languages.length}):</h3>`;
+                languages.forEach(lang => {
+                    html += `
+                        <div style="margin: 10px 0; padding: 10px; background: #1a1a1a; border-radius: 5px;">
+                            <strong>${lang.name}</strong> (ID: ${lang.id}, Extension: .${lang.extension})
+                        </div>
+                    `;
+                });
+                
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            testAllAPIs();
+            loadProblems();
+        });
+    </script>
+</body>
+</html>
