@@ -3,6 +3,9 @@ package com.codeplatform.backend.controller;
 import com.codeplatform.backend.dto.ProblemCreateRequest;
 import com.codeplatform.backend.dto.ProblemDetailDTO;
 import com.codeplatform.backend.dto.UserResponse;
+import com.codeplatform.backend.dto.UserRegistrationRequest;
+import com.codeplatform.backend.dto.ContestRequest;
+import com.codeplatform.backend.dto.ContestResponse;
 import com.codeplatform.backend.service.AdminService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -100,6 +103,61 @@ public class AdminController {
         }
     }
     
+    @PostMapping("/users")
+    public ResponseEntity<UserResponse> createUser(@RequestBody UserRegistrationRequest request) {
+        try {
+            UserResponse user = adminService.createUser(request);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    // Contest Management APIs
+    @PostMapping("/contests")
+    public ResponseEntity<ContestResponse> createContest(@RequestBody ContestRequest request) {
+        try {
+            ContestResponse response = adminService.createContest(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    @GetMapping("/contests")
+    public ResponseEntity<List<ContestResponse>> getAllContests() {
+        try {
+            List<ContestResponse> contests = adminService.getAllContests();
+            return ResponseEntity.ok(contests);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    @PutMapping("/contests/{id}")
+    public ResponseEntity<ContestResponse> updateContest(@PathVariable Long id, @RequestBody ContestRequest request) {
+        try {
+            ContestResponse response = adminService.updateContest(id, request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    @DeleteMapping("/contests/{id}")
+    public ResponseEntity<Void> deleteContest(@PathVariable Long id) {
+        try {
+            adminService.deleteContest(id);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     // Dashboard Statistics
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getDashboardStats() {

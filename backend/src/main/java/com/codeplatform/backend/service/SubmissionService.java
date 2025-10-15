@@ -7,6 +7,10 @@ import com.codeplatform.backend.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
 
 @Service
 public class SubmissionService {
@@ -25,6 +29,9 @@ public class SubmissionService {
     
     @Autowired
     private CodeExecutionService codeExecutionService;
+    
+    @Autowired
+    private ContestService contestService;
     
     public SubmissionResponse submitCode(SubmissionRequest request) {
         try {
@@ -56,6 +63,16 @@ public class SubmissionService {
             
             submission = submissionRepository.save(submission);
             response.setSubmissionId(submission.getId());
+            
+            // Update contest leaderboard if this is a contest submission
+            if (request.getContestId() != null) {
+                contestService.updateLeaderboardOnSubmission(
+                    request.getContestId(), 
+                    request.getUserId(), 
+                    response.getStatus(), 
+                    submission.getSubmittedAt()
+                );
+            }
             
             return response;
             
@@ -93,5 +110,68 @@ public class SubmissionService {
     
     public List<Submission> getAcceptedSubmissions(Long problemId, Long languageId) {
         return submissionRepository.findAcceptedSubmissionsByProblemAndLanguageOrderByTime(problemId, languageId);
+    }
+    
+    public List<Submission> getUserRecentSubmissions(Long userId) {
+        return submissionRepository.findRecentSubmissionsByUserId(userId)
+                .stream()
+                .limit(10)
+                .toList();
+    }
+    
+    public Map<String, Object> getUserStats(Long userId) {
+        List<Problem> solvedProblems = submissionRepository.findSolvedProblemsByUserId(userId);
+        List<Object[]> difficultyStats = submissionRepository.findSolvedCountByDifficultyAndUserId(userId);
+        
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalSolved", solvedProblems.size());
+        
+        // Initialize difficulty counts
+        Map<String, Integer> difficultyCounts = new HashMap<>();
+        difficultyCounts.put("Easy", 0);
+        difficultyCounts.put("Medium", 0);
+        difficultyCounts.put("Hard", 0);
+        
+        // Fill in actual counts
+        for (Object[] row : difficultyStats) {
+            String difficulty = (String) row[0];
+            Long count = (Long) row[1];
+            difficultyCounts.put(difficulty, count.intValue());
+        }
+        
+        stats.put("easySolved", difficultyCounts.get("Easy"));
+        stats.put("mediumSolved", difficultyCounts.get("Medium"));
+        stats.put("hardSolved", difficultyCounts.get("Hard"));
+        
+        // Calculate acceptance rate (simplified - based on recent submissions)
+        List<Submission> recentSubmissions = submissionRepository.findRecentSubmissionsByUserId(userId)
+                .stream()
+                .limit(50)
+                .toList();
+        
+        if (!recentSubmissions.isEmpty()) {
+            long acceptedCount = recentSubmissions.stream()
+                    .filter(s -> "Accepted".equals(s.getStatus()))
+                    .count();
+            double acceptanceRate = (double) acceptedCount / recentSubmissions.size() * 100;
+            stats.put("acceptanceRate", Math.round(acceptanceRate * 100.0) / 100.0);
+        } else {
+            stats.put("acceptanceRate", 0.0);
+        }
+        
+        // Calculate streak (simplified - consecutive days with accepted submissions)
+        stats.put("streak", calculateStreak(userId));
+        
+        return stats;
+    }
+    
+    public List<Problem> getUserSolvedProblems(Long userId) {
+        return submissionRepository.findSolvedProblemsByUserId(userId);
+    }
+    
+    private int calculateStreak(Long userId) {
+        // Simplified streak calculation - just return 0 for now
+        // In a real implementation, you'd check consecutive days with accepted submissions
+        return 0;
     }
 }

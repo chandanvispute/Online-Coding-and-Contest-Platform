@@ -12,4 +12,5 @@ public class SubmissionRequest {
     private Long languageId;
     private String code;
     private Long userId; // temporary until JWT is implemented
+    private Long contestId; // optional - for contest submissions
 }

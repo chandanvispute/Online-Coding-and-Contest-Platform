@@ -6,6 +6,7 @@ import com.codeplatform.backend.util.JsonUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -22,13 +23,27 @@ public class DataInitializationService implements CommandLineRunner {
     @Autowired
     private ProblemRepository problemRepository;
     
-
+    @Autowired
+    private ContestRepository contestRepository;
+    
+    @Autowired
+    private ContestRegistrationRepository contestRegistrationRepository;
+    
+    @Autowired
+    private ContestLeaderboardRepository contestLeaderboardRepository;
+    
+    @Autowired
+    private SubmissionRepository submissionRepository;
+    
+    @Autowired
+    private ContestProblemRepository contestProblemRepository;
     
     @Override
     public void run(String... args) throws Exception {
         initializeLanguages();
         initializeUsers();
         initializeProblems();
+        initializeContestData();
     }
     
     private void initializeLanguages() {
@@ -56,7 +71,38 @@ public class DataInitializationService implements CommandLineRunner {
             testUser.setPasswordHash("$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9P8jW9TukLrx.3S"); // "admin123"
             testUser.setRole("user");
             
-            userRepository.saveAll(Arrays.asList(admin, testUser));
+            // Additional contest participants
+            User alice = new User();
+            alice.setUsername("alice");
+            alice.setEmail("alice@codeplatform.com");
+            alice.setPasswordHash("$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9P8jW9TukLrx.3S"); // "admin123"
+            alice.setRole("user");
+            
+            User bob = new User();
+            bob.setUsername("bob");
+            bob.setEmail("bob@codeplatform.com");
+            bob.setPasswordHash("$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9P8jW9TukLrx.3S"); // "admin123"
+            bob.setRole("user");
+            
+            User charlie = new User();
+            charlie.setUsername("charlie");
+            charlie.setEmail("charlie@codeplatform.com");
+            charlie.setPasswordHash("$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9P8jW9TukLrx.3S"); // "admin123"
+            charlie.setRole("user");
+            
+            User diana = new User();
+            diana.setUsername("diana");
+            diana.setEmail("diana@codeplatform.com");
+            diana.setPasswordHash("$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9P8jW9TukLrx.3S"); // "admin123"
+            diana.setRole("user");
+            
+            User eve = new User();
+            eve.setUsername("eve");
+            eve.setEmail("eve@codeplatform.com");
+            eve.setPasswordHash("$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9P8jW9TukLrx.3S"); // "admin123"
+            eve.setRole("user");
+            
+            userRepository.saveAll(Arrays.asList(admin, testUser, alice, bob, charlie, diana, eve));
             System.out.println("Users initialized");
         }
     }
@@ -315,6 +361,196 @@ public class DataInitializationService implements CommandLineRunner {
             problemRepository.save(mergeTwoLists);
             
             System.out.println("Sample problems initialized");
+        }
+    }
+    
+    private void initializeContestData() {
+        if (contestRepository.count() == 0) {
+            User admin = userRepository.findByUsername("admin");
+            List<User> users = userRepository.findAll();
+            List<Problem> problems = problemRepository.findAll();
+            List<Language> languages = languageRepository.findAll();
+            
+            // Create past contest (completed)
+            Contest pastContest = new Contest();
+            pastContest.setName("Weekly Contest #1");
+            pastContest.setStartTime(LocalDateTime.now().minusDays(7));
+            pastContest.setEndTime(LocalDateTime.now().minusDays(7).plusHours(2));
+            pastContest.setCreatedBy(admin);
+            pastContest = contestRepository.save(pastContest);
+            
+            // Create ongoing contest
+            Contest ongoingContest = new Contest();
+            ongoingContest.setName("Weekly Contest #2");
+            ongoingContest.setStartTime(LocalDateTime.now().minusHours(1));
+            ongoingContest.setEndTime(LocalDateTime.now().plusHours(1));
+            ongoingContest.setCreatedBy(admin);
+            ongoingContest = contestRepository.save(ongoingContest);
+            
+            // Create upcoming contest
+            Contest upcomingContest = new Contest();
+            upcomingContest.setName("Weekly Contest #3");
+            upcomingContest.setStartTime(LocalDateTime.now().plusDays(2));
+            upcomingContest.setEndTime(LocalDateTime.now().plusDays(2).plusHours(2));
+            upcomingContest.setCreatedBy(admin);
+            upcomingContest = contestRepository.save(upcomingContest);
+            
+            // Add problems to contests (using first 3 problems for each contest)
+            for (int i = 0; i < Math.min(3, problems.size()); i++) {
+                // Past contest problems
+                ContestProblem pastContestProblem = new ContestProblem();
+                pastContestProblem.setId(new ContestProblemId(pastContest.getId(), problems.get(i).getId()));
+                pastContestProblem.setContest(pastContest);
+                pastContestProblem.setProblem(problems.get(i));
+                contestProblemRepository.save(pastContestProblem);
+                
+                // Ongoing contest problems
+                ContestProblem ongoingContestProblem = new ContestProblem();
+                ongoingContestProblem.setId(new ContestProblemId(ongoingContest.getId(), problems.get(i).getId()));
+                ongoingContestProblem.setContest(ongoingContest);
+                ongoingContestProblem.setProblem(problems.get(i));
+                contestProblemRepository.save(ongoingContestProblem);
+                
+                // Upcoming contest problems
+                ContestProblem upcomingContestProblem = new ContestProblem();
+                upcomingContestProblem.setId(new ContestProblemId(upcomingContest.getId(), problems.get(i).getId()));
+                upcomingContestProblem.setContest(upcomingContest);
+                upcomingContestProblem.setProblem(problems.get(i));
+                contestProblemRepository.save(upcomingContestProblem);
+            }
+            
+            // Register users for contests and create submissions
+            createContestParticipation(pastContest, users, problems, languages, true); // Past contest with results
+            createContestParticipation(ongoingContest, users, problems, languages, false); // Ongoing contest with partial results
+            
+            // Register some users for upcoming contest (no submissions yet)
+            for (int i = 1; i < Math.min(4, users.size()); i++) {
+                ContestRegistration registration = new ContestRegistration();
+                registration.setId(new ContestRegistrationId(upcomingContest.getId(), users.get(i).getId()));
+                registration.setContest(upcomingContest);
+                registration.setUser(users.get(i));
+                contestRegistrationRepository.save(registration);
+            }
+            
+            System.out.println("Contest data initialized with participants and leaderboards");
+        }
+    }
+    
+    private void createContestParticipation(Contest contest, List<User> users, List<Problem> problems, List<Language> languages, boolean isCompleted) {
+        // Skip admin user (index 0) for contest participation
+        for (int i = 1; i < Math.min(6, users.size()); i++) {
+            User user = users.get(i);
+            
+            // Register user for contest
+            ContestRegistration registration = new ContestRegistration();
+            registration.setId(new ContestRegistrationId(contest.getId(), user.getId()));
+            registration.setContest(contest);
+            registration.setUser(user);
+            contestRegistrationRepository.save(registration);
+            
+            // Create leaderboard entry
+            ContestLeaderboard leaderboardEntry = new ContestLeaderboard(contest, user);
+            
+            // Create submissions based on user performance (simulated)
+            int problemsSolved = 0;
+            int totalSubmissions = 0;
+            int score = 0;
+            long penaltyTime = 0;
+            LocalDateTime lastSubmissionTime = contest.getStartTime();
+            
+            // Simulate different performance levels for users
+            int performanceLevel = i % 3; // 0: high performer, 1: medium, 2: low
+            int maxProblems = Math.min(3, problems.size());
+            
+            for (int j = 0; j < maxProblems; j++) {
+                Problem problem = problems.get(j);
+                Language language = languages.get(j % languages.size());
+                
+                // Determine if user solved this problem based on performance level
+                boolean solved = false;
+                int attempts = 1;
+                
+                switch (performanceLevel) {
+                    case 0: // High performer - solves most problems quickly
+                        solved = j < 3;
+                        attempts = 1 + (int)(Math.random() * 2); // 1-2 attempts
+                        break;
+                    case 1: // Medium performer - solves some problems with more attempts
+                        solved = j < 2;
+                        attempts = 2 + (int)(Math.random() * 3); // 2-4 attempts
+                        break;
+                    case 2: // Low performer - solves fewer problems with many attempts
+                        solved = j < 1;
+                        attempts = 3 + (int)(Math.random() * 4); // 3-6 attempts
+                        break;
+                }
+                
+                // For ongoing contest, reduce completion rate
+                if (!isCompleted) {
+                    solved = solved && Math.random() > 0.3; // 70% chance to maintain solution
+                    attempts = Math.max(1, attempts - 1);
+                }
+                
+                // Create submissions
+                for (int attempt = 0; attempt < attempts; attempt++) {
+                    Submission submission = new Submission();
+                    submission.setUser(user);
+                    submission.setProblem(problem);
+                    submission.setLanguage(language);
+                    submission.setCode("// Sample solution for " + problem.getTitle());
+                    
+                    // Last attempt is successful if problem is solved
+                    if (attempt == attempts - 1 && solved) {
+                        submission.setStatus("Accepted");
+                        problemsSolved++;
+                        score += 100; // 100 points per problem
+                        
+                        // Add penalty time (minutes from contest start)
+                        long minutesFromStart = 20 + (attempt * 10) + (j * 15) + (int)(Math.random() * 30);
+                        penaltyTime += minutesFromStart + (attempt * 20); // 20 min penalty per wrong attempt
+                        lastSubmissionTime = contest.getStartTime().plusMinutes(minutesFromStart);
+                    } else {
+                        submission.setStatus(Math.random() > 0.5 ? "Wrong Answer" : "Runtime Error");
+                        penaltyTime += 20; // 20 min penalty for wrong submission
+                    }
+                    
+                    submission.setExecutionTime(50L + (long)(Math.random() * 200)); // 50-250ms
+                    submission.setMemoryUsed(20L + (long)(Math.random() * 50)); // 20-70KB
+                    submission.setSubmittedAt(contest.getStartTime().plusMinutes(20 + (attempt * 10) + (j * 15)));
+                    
+                    submissionRepository.save(submission);
+                    totalSubmissions++;
+                }
+            }
+            
+            // Update registration with final stats
+            registration.setProblemsSolved(problemsSolved);
+            registration.setScore(score);
+            contestRegistrationRepository.save(registration);
+            
+            // Update leaderboard entry
+            leaderboardEntry.setScore(score);
+            leaderboardEntry.setProblemsSolved(problemsSolved);
+            leaderboardEntry.setTotalSubmissions(totalSubmissions);
+            leaderboardEntry.setPenaltyTime(penaltyTime);
+            leaderboardEntry.setLastSubmissionTime(lastSubmissionTime);
+            leaderboardEntry.setUpdatedAt(LocalDateTime.now());
+            
+            contestLeaderboardRepository.save(leaderboardEntry);
+        }
+        
+        // Update rankings for the contest
+        updateContestRankings(contest.getId());
+    }
+    
+    private void updateContestRankings(Long contestId) {
+        List<ContestLeaderboard> entries = contestLeaderboardRepository
+            .findByContestIdOrderByRank(contestId);
+        
+        for (int i = 0; i < entries.size(); i++) {
+            ContestLeaderboard entry = entries.get(i);
+            entry.setRankPosition(i + 1);
+            contestLeaderboardRepository.save(entry);
         }
     }
 }

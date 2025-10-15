@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contest Data Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        .container {
+            background-color: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .contest {
+            background-color: #3d3d3d;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .leaderboard {
+            background-color: #3d3d3d;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .user-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            margin: 5px 0;
+            background-color: #4d4d4d;
+            border-radius: 3px;
+        }
+        .rank {
+            font-weight: bold;
+            color: #FFD700;
+        }
+        .score {
+            color: #4CAF50;
+        }
+        .status {
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .ongoing { background-color: #4CAF50; }
+        .ended { background-color: #f44336; }
+        .upcoming { background-color: #2196F3; }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .error {
+            color: #f44336;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #4CAF50;
+            background-color: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏆 Contest Data Test Dashboard</h1>
+    
+    <div class="container">
+        <h2>🎯 Test Controls</h2>
+        <button onclick="testAllContests()">Test All Contests</button>
+        <button onclick="testContestLeaderboards()">Test Leaderboards</button>
+        <button onclick="testUserStats()">Test User Stats</button>
+        <button onclick="testSubmissions()">Test Submissions</button>
+        <button onclick="runAllTests()">🚀 Run All Tests</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        
+        async function apiCall(endpoint) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error(`API call failed for ${endpoint}:`, error);
+                throw error;
+            }
+        }
+
+        function displayResult(title, content, isError = false) {
+            const resultsDiv = document.getElementById('results');
+            const container = document.createElement('div');
+            container.className = 'container';
+            
+            const titleElement = document.createElement('h3');
+            titleElement.textContent = title;
+            container.appendChild(titleElement);
+            
+            const contentElement = document.createElement('div');
+            contentElement.className = isError ? 'error' : 'success';
+            
+            if (typeof content === 'object') {
+                contentElement.innerHTML = `<pre>${JSON.stringify(content, null, 2)}</pre>`;
+            } else {
+                contentElement.textContent = content;
+            }
+            
+            container.appendChild(contentElement);
+            resultsDiv.appendChild(container);
+        }
+
+        async function testAllContests() {
+            try {
+                const contests = await apiCall('/contests');
+                
+                let html = '<div class="container"><h3>📅 All Contests</h3>';
+                contests.forEach(contest => {
+                    const startTime = new Date(contest.startTime);
+                    const endTime = new Date(contest.endTime);
+                    const now = new Date();
+                    
+                    let status = 'upcoming';
+                    if (now >= startTime && now <= endTime) status = 'ongoing';
+                    else if (now > endTime) status = 'ended';
+                    
+                    html += `
+                        <div class="contest">
+                            <h4>${contest.name} <span class="status ${status}">${status.toUpperCase()}</span></h4>
+                            <p><strong>ID:</strong> ${contest.id}</p>
+                            <p><strong>Start:</strong> ${startTime.toLocaleString()}</p>
+                            <p><strong>End:</strong> ${endTime.toLocaleString()}</p>
+                            <p><strong>Created by:</strong> ${contest.createdBy.username}</p>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                document.getElementById('results').innerHTML = html;
+                displayResult('✅ Contest Test', `Found ${contests.length} contests successfully!`);
+            } catch (error) {
+                displayResult('❌ Contest Test Failed', error.message, true);
+            }
+        }
+
+        async function testContestLeaderboards() {
+            try {
+                const contests = await apiCall('/contests');
+                let html = '<div class="container"><h3>🏆 Contest Leaderboards</h3>';
+                
+                for (const contest of contests) {
+                    try {
+                        const leaderboard = await apiCall(`/contests/${contest.id}/leaderboard`);
+                        const stats = await apiCall(`/contests/${contest.id}/stats`);
+                        
+                        html += `
+                            <div class="leaderboard">
+                                <h4>${contest.name} - Leaderboard</h4>
+                                <p><strong>Participants:</strong> ${stats.participantCount} | <strong>Status:</strong> ${stats.status}</p>
+                        `;
+                        
+                        if (leaderboard.length > 0) {
+                            leaderboard.forEach((entry, index) => {
+                                html += `
+                                    <div class="user-entry">
+                                        <span class="rank">#${entry.rank || index + 1}</span>
+                                        <span>${entry.username}</span>
+                                        <span class="score">${entry.score} pts</span>
+                                        <span>${entry.problemsSolved} solved</span>
+                                        <span>${entry.totalSubmissions} submissions</span>
+                                    </div>
+                                `;
+                            });
+                        } else {
+                            html += '<p>No participants yet</p>';
+                        }
+                        
+                        html += '</div>';
+                    } catch (error) {
+                        html += `<div class="leaderboard"><h4>${contest.name}</h4><p class="error">Error loading leaderboard: ${error.message}</p></div>`;
+                    }
+                }
+                
+                html += '</div>';
+                document.getElementById('results').innerHTML = html;
+                displayResult('✅ Leaderboard Test', 'Leaderboards loaded successfully!');
+            } catch (error) {
+                displayResult('❌ Leaderboard Test Failed', error.message, true);
+            }
+        }
+
+        async function testUserStats() {
+            try {
+                // Test user stats for testuser (ID 6)
+                const stats = await apiCall('/submissions/user/6/stats');
+                const recentSubmissions = await apiCall('/submissions/user/6/recent');
+                
+                let html = `
+                    <div class="container">
+                        <h3>📊 User Stats (testuser)</h3>
+                        <div class="user-entry">
+                            <span><strong>Total Solved:</strong> ${stats.totalSolved}</span>
+                            <span><strong>Easy:</strong> ${stats.easySolved}</span>
+                            <span><strong>Medium:</strong> ${stats.mediumSolved}</span>
+                            <span><strong>Hard:</strong> ${stats.hardSolved}</span>
+                            <span><strong>Acceptance Rate:</strong> ${stats.acceptanceRate}%</span>
+                        </div>
+                        <h4>Recent Submissions (${recentSubmissions.length})</h4>
+                `;
+                
+                recentSubmissions.slice(0, 5).forEach(submission => {
+                    const statusClass = submission.status === 'Accepted' ? 'score' : 'error';
+                    html += `
+                        <div class="user-entry">
+                            <span>${submission.problem.title}</span>
+                            <span class="${statusClass}">${submission.status}</span>
+                            <span>${submission.language.name}</span>
+                            <span>${submission.executionTime}ms</span>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                document.getElementById('results').innerHTML = html;
+                displayResult('✅ User Stats Test', 'User statistics loaded successfully!');
+            } catch (error) {
+                displayResult('❌ User Stats Test Failed', error.message, true);
+            }
+        }
+
+        async function testSubmissions() {
+            try {
+                // Test recent submissions
+                const submissions = await apiCall('/submissions/user/6/recent');
+                
+                let html = `
+                    <div class="container">
+                        <h3>📝 Recent Submissions</h3>
+                        <p>Found ${submissions.length} recent submissions</p>
+                `;
+                
+                submissions.slice(0, 10).forEach(submission => {
+                    const statusClass = submission.status === 'Accepted' ? 'score' : 'error';
+                    const submissionTime = new Date(submission.submittedAt).toLocaleString();
+                    
+                    html += `
+                        <div class="user-entry">
+                            <span><strong>${submission.problem.title}</strong></span>
+                            <span class="${statusClass}">${submission.status}</span>
+                            <span>${submission.language.name}</span>
+                            <span>${submission.executionTime}ms</span>
+                            <span>${submissionTime}</span>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                document.getElementById('results').innerHTML = html;
+                displayResult('✅ Submissions Test', 'Submissions loaded successfully!');
+            } catch (error) {
+                displayResult('❌ Submissions Test Failed', error.message, true);
+            }
+        }
+
+        async function runAllTests() {
+            document.getElementById('results').innerHTML = '<div class="container"><h3>🚀 Running All Tests...</h3></div>';
+            
+            await testAllContests();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testContestLeaderboards();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testUserStats();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testSubmissions();
+            
+            displayResult('🎉 All Tests Complete', 'All contest data tests completed successfully!');
+        }
+
+        // Auto-run tests on page load
+        window.onload = () => {
+            setTimeout(runAllTests, 1000);
+        };
+    </script>
+</body>
+</html>
