@@ -170,20 +170,31 @@ public class AdminService {
     
     public UserResponse createUser(UserRegistrationRequest request) {
         // Check if username already exists
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+        if (userRepository.findByUsername(request.getUsername()) != null) {
             throw new RuntimeException("Username already exists");
         }
         
         // Check if email already exists
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        if (userRepository.findByEmail(request.getEmail()) != null) {
             throw new RuntimeException("Email already exists");
+        }
+        
+        // Validate role if provided
+        String role = request.getRole();
+        if (role == null || role.trim().isEmpty()) {
+            role = "user"; // Default to "user" if not provided
+        } else {
+            // Validate role values
+            if (!role.equals("user") && !role.equals("admin")) {
+                throw new RuntimeException("Invalid role. Must be 'user' or 'admin'");
+            }
         }
         
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword()); // In real app, this should be encrypted
-        user.setRole("user");
+        user.setPasswordHash(request.getPassword()); // In real app, this should be encrypted
+        user.setRole(role);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
         
@@ -239,7 +250,6 @@ public class AdminService {
         contest.setEndTime(request.getEndTime());
         contest.setCreatedBy(creator);
         contest.setCreatedAt(LocalDateTime.now());
-        contest.setUpdatedAt(LocalDateTime.now());
         
         contest = contestRepository.save(contest);
         
@@ -274,7 +284,6 @@ public class AdminService {
         contest.setName(request.getName());
         contest.setStartTime(request.getStartTime());
         contest.setEndTime(request.getEndTime());
-        contest.setUpdatedAt(LocalDateTime.now());
         
         contest = contestRepository.save(contest);
         
